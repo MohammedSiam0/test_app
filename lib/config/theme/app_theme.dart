@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../../core/utils/app_colors.dart';
-import '../../core/utils/app_strings.dart';
 
 ThemeData appTheme() {
   SystemChrome.setSystemUIOverlayStyle(
@@ -24,10 +23,7 @@ ThemeData appTheme() {
             TextStyle(fontWeight: FontWeight.bold, color: Colors.black)),
     textTheme: const TextTheme(
       bodyMedium: TextStyle(
-          fontSize: 22,
-          height: 1.3,
-          color: Colors.white,
-          fontFamily:  'd'),
+          fontSize: 22, height: 1.3, color: Colors.white, fontFamily: 'd'),
     ),
   );
 }
