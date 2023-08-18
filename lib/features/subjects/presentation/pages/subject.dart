@@ -1,12 +1,12 @@
-import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:path_provider/path_provider.dart';
+
 import 'package:test_app/core/utils/app_colors.dart';
 import '../../data/models/get_subject.dart';
-import '../../data/models/subject.dart';
+
+import '../getx/subjectwidgetdata.dart';
 import '../getx/teacher_subject_service.dart';
 import '../widgets/custom_text_filed.dart';
 
@@ -18,11 +18,11 @@ class SubjectScreen extends StatefulWidget {
 }
 
 class _SubjectScreenState extends State<SubjectScreen> {
-  late Future<List<Item>> futureItems;
-  final TeacherSubjectService _dataManager =
-      TeacherSubjectService(); // إنشاء كائن لإدارة البيانات
+  final TeacherSubjectService _dataManager = TeacherSubjectService();
   TextEditingController customValueController = TextEditingController();
-  Item? selectedSubject; // تعريف المتغير هنا
+  //Item? selectedSubject; // تعريف المتغير هنا
+  late Future<List<Item>> futureItems;
+  // late SubjectWidgetData widgetData  ;
   void addCustomValue(String newValue) async {
     setState(() {
       futureItems = _dataManager.addCustomItem(newValue);
@@ -42,81 +42,61 @@ class _SubjectScreenState extends State<SubjectScreen> {
     super.dispose();
   }
 
-  List<TextFormField> textFieldDataList = [];
-  int number = 1;
-  int numberVideo = 1;
   int widgetIndex = 0;
-  Map<int, TextEditingController> certificationControllers = {};
-  Map<int, TextEditingController> hourlyRateControllers = {};
-  Map<int, TextEditingController> urlVideosControllers = {};
-  List<Map<String, dynamic>> subjectWidgets = [];
 
-  void reset() {
-    int number = 1;
-    int numberVideo = 1;
-    int widgetIndex = 0;
-    certificationControllers.clear();
-    hourlyRateControllers.clear();
-    urlVideosControllers.clear();
-    subjectWidgets.clear();
+
+  List<SubjectWidgetData> subjectWidgetsData = [];
+  Item? selectedDropdownValue;
+  void saveData() async {
+    try {
+      for (final widgetData in subjectWidgetsData) {
+        await TeacherSubjectService.createTeacherSubject(
+            selectedImages: widgetData.selectedImages,
+            selectedVideos: widgetData.selectedVideos,
+            subjectId: widgetData.selectedDropdownValue!.id.toString(),
+            hourlyRate: widgetData.hourlyRateController.text,
+            youtubeLink: widgetData.urlVideosController.text,
+            certificationHour: widgetData.certificationController.text);
+      }
+      print('length: ${subjectWidgetsData.length}');
+    } catch (error) {
+      print('Failed to create Teacher Subject: $error');
+      print('Failed to create Teacher Subject: ${subjectWidgetsData.length}');
+    }
   }
 
 //****  Image Picker
 
-  List<File?> selectedImages =
-      List.generate(4, (_) => null); // Assuming 6 positions
-  List<File?> selectedVideos =
-      List.generate(4, (_) => null); // Assuming 6 positions
-
-  // Future<void> pickImage(int index) async {
-  //   final pickedImage =
-  //       await ImagePicker().pickImage(source: ImageSource.gallery);
-  //
-  //   if (pickedImage != null) {
-  //     File imageFile = File(pickedImage.path);
-  //
-  //     String imagePath = 'file://${imageFile.path}';
-  //
-  //     setState(() {
-  //       selectedImages[index] = File(imagePath); // استخدم المسار الصحيح
-  //     });
-  //   } else {
-  //     print("No Image selected.");
-  //   }
-  // }
-
-  Future<void> pickImage(int index) async {
+  Future<void> pickImage(int index, SubjectWidgetData widgetData) async {
     final pickedImage =
         await ImagePicker().pickImage(source: ImageSource.gallery);
     if (pickedImage != null) {
       File? imageFile = File(pickedImage.path);
       setState(() {
-        selectedImages[index] = imageFile;
+        widgetData.selectedImages[index] = imageFile;
       });
     } else {
       print("No Image selected.");
     }
   }
 
-  Future<void> pickVideo(int index) async {
+  Future<void> pickVideo(int index, SubjectWidgetData widgetData) async {
     final pickedVideo =
         await ImagePicker().pickVideo(source: ImageSource.gallery);
 
     if (pickedVideo != null) {
       File videoFile = File(pickedVideo.path);
 
-      setState(() {
-        selectedVideos[index] = videoFile;
-      });
+      widgetData.selectedVideos[index] = videoFile;
+      setState(() {});
     } else {
       print("No video selected.");
     }
   }
 
-  //*****
+//*****
   @override
   Widget build(BuildContext context) {
-    int widgetIndex = subjectWidgets.length;
     return Scaffold(
       backgroundColor: AppColors.blueO,
       resizeToAvoidBottomInset: false,
@@ -137,7 +117,7 @@ class _SubjectScreenState extends State<SubjectScreen> {
         crossAxisAlignment: CrossAxisAlignment.start,
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Padding(
+          const Padding(
             padding: EdgeInsets.symmetric(horizontal: 15),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -178,14 +158,8 @@ class _SubjectScreenState extends State<SubjectScreen> {
               child: SingleChildScrollView(
                 child: Column(
                   children: [
-                    _buildContent(widgetIndex), // تمرير معرّف الويدجت هنا
-                    Column(
-                      children: List<Widget>.of(
-                        subjectWidgets
-                            .map((widgetData) => widgetData["widget"]),
-                      ),
-                    ),
-
+                    for (var widgetData in subjectWidgetsData)
+                      _buildContent(widgetData),
                     Padding(
                       padding: const EdgeInsets.symmetric(
                           horizontal: 10, vertical: 10),
@@ -197,11 +171,27 @@ class _SubjectScreenState extends State<SubjectScreen> {
                             ),
                             minimumSize: const Size(100, 40)),
                         onPressed: () {
+                          int widgetId = subjectWidgetsData.length;
+
+                          TextEditingController certificationController =
+                              TextEditingController();
+                          TextEditingController hourlyRateController =
+                              TextEditingController();
+                          TextEditingController urlVideosController =
+                              TextEditingController();
+
+                          SubjectWidgetData widgetData = SubjectWidgetData(
+                            selectedDropdownValue: selectedDropdownValue,
+                            id: widgetId,
+                            certificationController: certificationController,
+                            hourlyRateController: hourlyRateController,
+                            urlVideosController: urlVideosController,
+                            selectedImages: List.generate(4, (_) => null),
+                            selectedVideos: List.generate(4, (_) => null),
+                          );
+
                           setState(() {
-                            subjectWidgets.add({
-                              "id": widgetIndex,
-                              "widget": _buildContent(widgetIndex),
-                            });
+                            subjectWidgetsData.add(widgetData);
                           });
                         },
                         child: const Text(
@@ -220,7 +210,7 @@ class _SubjectScreenState extends State<SubjectScreen> {
     );
   }
 
-  Widget _buildContent(int widgetIndex) {
+  Widget _buildContent(SubjectWidgetData widgetData) {
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
       padding: const EdgeInsets.only(left: 5, right: 5, top: 0),
@@ -249,8 +239,8 @@ class _SubjectScreenState extends State<SubjectScreen> {
                 IconButton(
                   onPressed: () {
                     setState(() {
-                      subjectWidgets.removeWhere(
-                          (element) => element["id"] == widgetIndex);
+                      subjectWidgetsData
+                          .removeWhere((element) => element.id == widgetIndex);
                     });
                   },
                   icon: const Icon(
@@ -282,10 +272,12 @@ class _SubjectScreenState extends State<SubjectScreen> {
                             child: DropdownButton<Item>(
                               hint: const Text(" Select Subject"),
                               isExpanded: true,
-                              value: selectedSubject,
+                              // value: selectedSubject,
+                              value: widgetData.selectedDropdownValue,
                               onChanged: (Item? newValue) {
                                 setState(() {
-                                  selectedSubject = newValue;
+                                  // selectedSubject = newValue;
+                                  widgetData.selectedDropdownValue = newValue!;
                                 });
                               },
                               items: snapshot.data!.map<DropdownMenuItem<Item>>(
@@ -320,14 +312,12 @@ class _SubjectScreenState extends State<SubjectScreen> {
               ],
             ),
             CustomTextFiled(
-              customValueController: certificationControllers[widgetIndex] ??=
-                  TextEditingController(),
+              customValueController: widgetData.certificationController,
               title: 'Certification Hour',
               lable: '',
             ),
             CustomTextFiled(
-              customValueController: hourlyRateControllers[widgetIndex] ??=
-                  TextEditingController(),
+              customValueController: widgetData.hourlyRateController,
               title: 'Hourly Rate',
               lable: '\$',
               prefixIcon: Icons.attach_money_outlined,
@@ -355,8 +345,7 @@ class _SubjectScreenState extends State<SubjectScreen> {
               children: [
                 Expanded(
                   child: CustomTextFiled(
-                    customValueController: urlVideosControllers[widgetIndex] ??=
-                        TextEditingController(),
+                    customValueController: widgetData.urlVideosController,
                     title: 'Url Videos',
                     lable: 'Insert your video Url here',
                   ),
@@ -365,7 +354,7 @@ class _SubjectScreenState extends State<SubjectScreen> {
                   child: IconButton(
                     onPressed: () {
                       setState(() {
-                        urlVideosControllers[widgetIndex]?.clear();
+                        widgetData.urlVideosController.clear();
                       });
                     },
                     icon: const Icon(
@@ -377,13 +366,14 @@ class _SubjectScreenState extends State<SubjectScreen> {
                 ),
               ],
             ),
-            for (int i = 1; i < textFieldDataList.length; i++)
+            for (int i = 1; i < widgetData.textFieldDataList.length; i++)
               Row(
                 crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
                   Expanded(
                     child: CustomTextFiled(
-                      customValueController: textFieldDataList[i].controller!,
+                      customValueController:
+                          widgetData.textFieldDataList[i].controller!,
                       title: 'Url Videos',
                       lable: 'Insert your video Url here',
                     ),
@@ -392,7 +382,7 @@ class _SubjectScreenState extends State<SubjectScreen> {
                     child: IconButton(
                       onPressed: () {
                         setState(() {
-                          textFieldDataList.removeAt(i);
+                          widgetData.textFieldDataList.removeAt(i);
                         });
                       },
                       icon: const Icon(
@@ -415,7 +405,7 @@ class _SubjectScreenState extends State<SubjectScreen> {
             InkWell(
               onTap: () {
                 setState(() {
-                  textFieldDataList.add(TextFormField(
+                  widgetData.textFieldDataList.add(TextFormField(
                     controller: TextEditingController(),
                   ));
                 });
@@ -447,13 +437,13 @@ class _SubjectScreenState extends State<SubjectScreen> {
               padding: EdgeInsets.zero,
               physics: const NeverScrollableScrollPhysics(),
               shrinkWrap: true,
-              itemCount: numberVideo,
+              itemCount: widgetData.numberVideo,
               itemBuilder: (context, index) {
-                File? videoFile = selectedVideos[index];
+                File? videoFile = widgetData.selectedVideos[index];
                 return Stack(
                   children: [
                     if (videoFile == null)
-                      Center(
+                      const Center(
                         child: Text(
                           "No Uploaded videos",
                           textAlign: TextAlign.center,
@@ -480,7 +470,7 @@ class _SubjectScreenState extends State<SubjectScreen> {
                       ),
                     InkWell(
                       onTap: () {
-                        pickVideo(index);
+                        pickVideo(index, widgetData);
                       },
                       child: Image.asset(
                         'image/boxImage.png',
@@ -496,22 +486,14 @@ class _SubjectScreenState extends State<SubjectScreen> {
                         onPressed: () {
                           setState(() {
                             if (videoFile != null) {
-                              selectedVideos[index] = null;
+                              widgetData.selectedVideos[index] = null;
                               // Update the number of videos accordingly
 
-                              if (numberVideo == 1) {
-                                numberVideo;
+                              if (widgetData.numberVideo == 1) {
+                                widgetData.numberVideo;
                               } else {
                                 // هنا سيقوم بتخفيض قيمة number إذا لم تكن 1
-                                numberVideo--;
-                                // عرض SnackBar لإعلام المستخدم بحذف الصورة
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(
-                                    content:
-                                        Text('Video removed. :$numberVideo'),
-                                    duration: const Duration(seconds: 2),
-                                  ),
-                                );
+                                widgetData.numberVideo--;
                               }
                             }
                           });
@@ -544,9 +526,9 @@ class _SubjectScreenState extends State<SubjectScreen> {
             InkWell(
               onTap: () {
                 setState(() {
-                  if (numberVideo >= 3) {
+                  if (widgetData.numberVideo >= 3) {
                   } else {
-                    numberVideo++;
+                    widgetData.numberVideo++;
                   }
                 });
               },
@@ -587,9 +569,9 @@ class _SubjectScreenState extends State<SubjectScreen> {
               physics: const NeverScrollableScrollPhysics(),
               // هاي مهمة الفكرة فيها انه احجز قيمتك من قيمة الابو مدام اتجاهك غير اتجاه الابو
               shrinkWrap: true,
-              itemCount: number,
+              itemCount: widgetData.number,
               itemBuilder: (context, index) {
-                File? itemImage = selectedImages[index];
+                File? itemImage = widgetData.selectedImages[index];
                 return Stack(
                   children: [
                     itemImage == null
@@ -611,8 +593,7 @@ class _SubjectScreenState extends State<SubjectScreen> {
                           ),
                     InkWell(
                       onTap: () {
-                        pickImage(
-                            index); // Pass the index to identify which position is tapped
+                        pickImage(index, widgetData);
                       },
                       child: Image.asset(
                         'image/boxImage.png',
@@ -627,14 +608,14 @@ class _SubjectScreenState extends State<SubjectScreen> {
                       child: IconButton(
                         onPressed: () {
                           setState(() {
-                            if (selectedImages[index] != null) {
-                              selectedImages[index] = null;
+                            if (widgetData.selectedImages[index] != null) {
+                              widgetData.selectedImages[index] = null;
                             }
-                            if (number == 1) {
-                              number;
+                            if (widgetData.number == 1) {
+                              widgetData.number;
                             } else {
                               // هنا سيقوم بتخفيض قيمة number إذا لم تكن 1
-                              number--;
+                              widgetData.number--;
                             }
                           });
                         },
@@ -664,9 +645,9 @@ class _SubjectScreenState extends State<SubjectScreen> {
             InkWell(
               onTap: () {
                 setState(() {
-                  if (number >= 3) {
+                  if (widgetData.number >= 3) {
                   } else {
-                    number++;
+                    widgetData.number++;
                   }
                 });
               },
@@ -720,111 +701,8 @@ class _SubjectScreenState extends State<SubjectScreen> {
                     borderRadius: BorderRadius.circular(10),
                   ),
                   minimumSize: const Size(150, 50)),
-              onPressed: () async {
-                // Map<String, String> dataSubject = {
-                //   'subject[0][id]': "${selectedSubject?.id}",
-                //   'subject[0][hourlyRate]': "${hourlyRateControllers[0]?.text}",
-                //   'subject[0][youtubeLink][0]':
-                //       "${[urlVideosControllers[widgetIndex]?.text]}",
-                //   'subject[0][certification_hour]':
-                //       "${certificationControllers[0]?.text}",
-                // };
-                // try {
-                //   await TeacherSubjectService.createTeacherSubject(
-                //       dataSubject, selectedVideos, selectedVideos);
-                //   reset();
-                // } catch (error) {
-                //   print('Failed to create Teacher Subject: $error');
-                // }
-                try {
-                  // تحضير البيانات للإرسال
-                  // 2 / 212 / 199 /200 / 211 /212 /224 / 18
-                  //   2 / 212  / 20  / 16 / 29 / 122 / 18 / 90 / 24
-                  // Map<String, String> data = {
-                  //   'subject[0][id]': '139',
-                  //   'subject[0][hourlyRate]': '139',
-                  //   'subject[0][youtubeLink][0]':
-                  //       'https://www.youtube.com/watch?v=gIGGhFlGgLI',
-                  //   'subject[0][certification_hour]': '10',
-                  // };
-                  // List<File?> imageFiles = selectedImages;
-                  // List<File?> videoFiles = selectedVideos;
-                  // TeacherSubject data = TeacherSubject(
-                  //   subjectId: 200,
-                  //   hourlyRate: 656,
-                  //   certificationHour: 656,
-                  //   youtubeUrl: ['https://www.youtube.com/gfg'],
-                  //   videos: [
-                  //     '/data/user/0/com.example.test_app/cache/b70c733d-956a-47c7-be64-2154a8e117c7/121706933_969323164271168_8312074245074881614_n.mp4'
-                  //   ],
-                  //   imageList: [
-                  //     '/data/user/0/com.example.test_app/cache/9762fcb9-559c-4419-b397-70d872140b72/20230816_053749.jpg'
-                  //   ],
-                  // );
-                  // List<String> imagePaths = selectedImages.map((file) {
-                  //   if (file != null) {
-                  //     return file.path;
-                  //   } else {
-                  //     return ''; // You can choose how to handle null values in the list
-                  //   }
-                  // }).toList();
-                  // List<String> videoPaths = selectedVideos.map((file) {
-                  //   if (file != null) {
-                  //     return file.path;
-                  //   } else {
-                  //     return ''; // You can choose how to handle null values in the list
-                  //   }
-                  // }).toList();
-
-                  // TeacherSubject data = TeacherSubject(
-                  //   subjectId: 224,
-                  //   hourlyRate: 50,
-                  //   certificationHour: 10,
-                  //   youtubeUrl: ['https://www.youtube.com/watch?v=abc123'],
-                  //   videos: [
-                  //     '/data/user/0/com.example.test_app/cache/b70c733d-956a-47c7-be64-2154a8e117c7/121706933_969323164271168_8312074245074881614_n.mp4'
-                  //   ],
-                  //   imageList: [
-                  //     '/data/user/0/com.example.test_app/cache/9762fcb9-559c-4419-b397-70d872140b72/20230816_053749.jpg'
-                  //   ],
-                  //   videosUrl: [
-                  //     '/data/user/0/com.example.test_app/cache/b70c733d-956a-47c7-be64-2154a8e117c7/121706933_969323164271168_8312074245074881614_n.mp4'
-                  //   ],
-                  //   youtubeVideos: ['https://www.youtube.com/watch?v=xyz789'],
-                  // );
-
-                  // إنشاء الموضوع ورفع البيانات
-                  // await TeacherSubjectService.createTeacherSubject(
-                  //     /*, imageFiles, videoFiles*/);
-                  // List<String> imagePaths = selectedImages.map((file) {
-                  //   if (file != null) {
-                  //     return file.path;
-                  //   } else {
-                  //     return ''; // You can choose how to handle null values in the list
-                  //   }
-                  // }).toList();
-                  // List<String> videoPaths = selectedVideos.map((file) {
-                  //   if (file != null) {
-                  //     return file.path;
-                  //   } else {
-                  //     return ''; // You can choose how to handle null values in the list
-                  //   }
-                  // }).toList();
-                  // 138  /  32  /26 / 28  / 13
-                  await TeacherSubjectService.createTeacherSubject(
-                    selectedImages: selectedImages,
-                    // selectedVideos: selectedVideos,
-                    subjectId: selectedSubject!.id.toString(),
-                    hourlyRate: '13',
-                    youtubeLink: 'https://www.youtube.com/watch?13',
-                    certificationHour: '10', /*, imageFiles, videoFiles*/
-                  );
-
-                  // إعادة تعيين الحالة
-                  //  reset();
-                } catch (error) {
-                  print('Failed to create Teacher Subject: $error');
-                }
+              onPressed: () {
+                saveData();
               },
               child: const Text(
                 "Save",

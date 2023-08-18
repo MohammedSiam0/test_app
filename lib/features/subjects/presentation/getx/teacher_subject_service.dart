@@ -17,68 +17,6 @@ class TeacherSubjectService {
     'Authorization': token, // استبدل بالتوكن الخاص بك
   };
 
-  // إنشاء TeacherSubject
-/*
-  static Future<void> createTeacherSubject(
-      Map<String, dynamic> subjectData) async {
-    final request = http.MultipartRequest('POST', Uri.parse(baseUrl));
-    request.headers.addAll(headers);
-
-    subjectData.forEach((key, value) async {
-      if (value is List<String>) {
-        for (var item in value) {
-          request.files.add(await http.MultipartFile.fromPath(
-            key,
-            item,
-            filename: item.split('/').last,
-          ));
-        }
-      } else {
-        request.fields[key] = value.toString();
-      }
-    });
-
-    final response = await request.send();
-    if (response.statusCode == 200) {
-      // print(await response.stream.bytesToString());
-      print("Create Successfully");
-    } else {
-      print(response.reasonPhrase);
-    }
-  }
-*/
-
-  // تحديث TeacherSubject
-/*  static Future<void> updateTeacherSubject(
-    Map<String, dynamic> subjectData,
-    String teacherSubjectId,
-  ) async {
-    final request =
-        http.MultipartRequest('POST', Uri.parse('$baseUrl/$teacherSubjectId'));
-    request.headers.addAll(headers);
-
-    subjectData.forEach((key, value) async {
-      if (value is List<String>) {
-        for (var item in value) {
-          request.files.add(await http.MultipartFile.fromPath(
-            key,
-            item,
-            filename: item.split('/').last,
-          ));
-        }
-      } else {
-        request.fields[key] = value.toString();
-      }
-    });
-
-    final response = await request.send();
-    if (response.statusCode == 200) {
-      print(await response.stream.bytesToString());
-    } else {
-      print(response.reasonPhrase);
-    }
-  }*/
-
   // جلب  GetSubject
   Future<List<Item>> fetchSubjectFromServer() async {
     final response = await http
@@ -102,7 +40,7 @@ class TeacherSubjectService {
 
   static Future<void> createTeacherSubject({
     required List<File?> selectedImages,
-    // required List<File?> selectedVideos,
+    required List<File?> selectedVideos,
     required String subjectId,
     required String hourlyRate,
     required String youtubeLink,
@@ -110,7 +48,7 @@ class TeacherSubjectService {
   }) async {
     var headers = {
       'Authorization':
-          'Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiJ9.eyJhdWQiOiIyIiwianRpIjoiNTEwNzk2NGVmNzM0MDE0YTBlZjg3MjgyMTQ4YmVjNWJiY2YzMWE0NzFkY2Y3ZjlmOTBjNjc4MDIyMDAwZTg3OGY0Yzc4ZWViMzY3ZmI5MTgiLCJpYXQiOjE2OTIyMjg4MzAuNzc5NTgyLCJuYmYiOjE2OTIyMjg4MzAuNzc5NTg0LCJleHAiOjE2OTM1MjQ4MzAuNzc0NjY3LCJzdWIiOiIxMTYyMTMyIiwic2NvcGVzIjpbIioiXX0.KupqnhyBu65Hy8ewDM5kdxHVu5PSARdmz35V6pdSBC_S7ku-oh0uQ4po_XUEMa30bC8FWWGrFbDIoAyuBnPG70buGHAGoBw63GCGXv7osVgCNWKatZMzgmwvg_jkjway28VU8yNi4nMPAQY79ydDca9TyShXINYUQf5v73oyWmTEEfbmRo-P2xlbw2ozTcAnDM7ZaJXORC7jR1LazpEw8W6Htp_EzyUTytKABy8xx8sPTx1j66V-2PvA7gX_dYG21PJqg5diwa9EKOJXsHpasoDW_fxubncTHYVnzE-8Xf5OS2NvzoE5tL_WbS33crJqmEUvm5kSz706x_48deA2rYDGLRXt6iSoIvHz0HDRTBrJoGdzJm1gQxqNx2g9b7q-YxLKEaJEZHEoNvngQ7FgpG3_9Y57IiWVUJpM2Ung6EDr_vsmUtWF5Bn6-NX8IUgJQl8nxC2-xQETMMYLtjyEVNK22yf0yhs4gunKkVKM60iwCzgjNild8SwGoOnyqsp_qj-QB0Qbx1dqpGQdw3umFcntzyNTPIAR_3fYRjU4a-Z3uTK2ddxApv6mJILE7R5uOW1YeVaox7sFFJSRqDSPCfZ2YKML7MUzOeNPz00Ht_Wl1q1ITsw_-d1WmS9kmwsWD-7ixQ71w-Pq7KNO1dYDDzHuJH2prCLBPLiXNeDt2pI',
+          'Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiJ9.eyJhdWQiOiIyIiwianRpIjoiZWIzZTI5OGJhZTc3M2VmNmViNGNjODAwOGRjNTM4NTE3ZjA1NmE0MmM5ODgyMjhiMDE5M2U2OWZkMWIzNGYxMDgwOWUzYjFjZTI0YmQwOTkiLCJpYXQiOjE2OTIzNjI0NDMuNzg5NTUxLCJuYmYiOjE2OTIzNjI0NDMuNzg5NTUzLCJleHAiOjE2OTM2NTg0NDMuNzg2NzIzLCJzdWIiOiIxMTYyMTYyIiwic2NvcGVzIjpbIioiXX0.lCvhnr6UbSUfBfQoVvnKxt9mKNFTkjReS-itnPNl8LQ5gjFLHB53OZLHSSi5o5uMfApDQGsQ5liyfDu--qKINIOsfsrNjIPmFzLIAKWXr3u6lAuasxo7F2FEW571xsOkre8ym3oCSFtCf8SH8UYynhb7ISZAWhoQfuX_h6CDC9G9eY5DjmGwX1dGnRt0xR-T6E1uCjfD2wscij1cFlZqUSiu_MkYrOn-49fB2-qU64JXKHFTNg19ZUOXtl0_P8mL5MOAbiBAIdfKU3ulQkC8T3W2JqIwxfvRIIBKjWfB2DjFQhnNNktIJhQeOy8mnob2nqwlvTyKX12o2WaUbGjDVXXzr4WX4Ugqllz3T16p_PsLWZzT_3iFNn2fNcKhLYH49kqzLaj8igl1ln2KxRvXceB0hHoI8eekTNpi1rf4za-nWO-ycW4WkCiiJxkxfD7BdDavutpXF76obVCK-h5N-T6Y_xJriz2WbC6QyuWuk3tEIhZbzKJXdecyCJKXQaEjpHKk4u88RrbH5v5C3o0b9BDcOdhT2tJnE5yBIXT452VWh5R7upn7xYVFJHPyJDiqn7_u7h2q34CXvMRAk-bI2wuZoPf3atmQeM5ICTk9Ma0b7DV32zVinP2-v8qA3aMVpz3GHQ9Hbm7Na772PbejexDBw-Oa0UVSJaImSL5P8Is',
       'Content-Type': 'multipart/form-data',
     };
 
@@ -126,26 +64,23 @@ class TeacherSubjectService {
       'subject[0][certification_hour]': certificationHour,
     });
 
-    // for (int i = 0; i < selectedImages.length; i++) {
-    //   request.fields['subject[0][imagelist][$i]'] = selectedImages[i];
-    // }
-
-    // for (int i = 0; i < selectedImages.length; i++) {
-    //   File? imageFile = selectedImages[i];
-    //   if (imageFile != null) {
-    //     request.files.add(await http.MultipartFile.fromBytes(
-    //       'subject[0][imagelist][$i]',
-    //       File(selectedImages[i]!.path).readAsBytesSync(),
-    //       filename: imageFile.path,
-    //     ));
-    //   }
-    // }
     for (int i = 0; i < selectedImages.length; i++) {
       File? imageFile = selectedImages[i];
       if (imageFile != null) {
         String filename = 'image_$i'; // Unique filename for each image
         request.files.add(await http.MultipartFile.fromBytes(
-          'subject[0][list_image_url][$i]',
+          'subject[0][imagelist][$i]',
+          await imageFile.readAsBytes(),
+          filename: filename,
+        ));
+      }
+    }
+    for (int i = 0; i < selectedVideos.length; i++) {
+      File? imageFile = selectedVideos[i];
+      if (imageFile != null) {
+        String filename = 'image_$i'; // Unique filename for each image
+        request.files.add(await http.MultipartFile.fromBytes(
+          'subject[0][videos][$i]',
           await imageFile.readAsBytes(),
           filename: filename,
         ));
