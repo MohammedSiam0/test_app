@@ -14,6 +14,7 @@ class SubjectWidgetData {
   List<File?> selectedVideos = List.generate(4, (_) => null);
   int? widgetCount = 0;
   List<TextFormField> textFieldDataList = [];
+
   // وأي متغيرات أخرى تحتاجها لكل ودجت
   Item? selectedDropdownValue;
   int number = 1;

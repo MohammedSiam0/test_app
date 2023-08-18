@@ -34,6 +34,11 @@ class _SubjectScreenState extends State<SubjectScreen> {
   void initState() {
     super.initState();
     futureItems = _dataManager.fetchSubjectFromServer();
+    // 33 /  29    /27
+    // /  13   /  20   /
+    // 91 / 24  / 101 / 19
+    // / 10  / 21 / 30 / 31
+    addWidget();
   }
 
   @override
@@ -44,9 +49,45 @@ class _SubjectScreenState extends State<SubjectScreen> {
 
   int widgetIndex = 0;
 
-
   List<SubjectWidgetData> subjectWidgetsData = [];
   Item? selectedDropdownValue;
+  void addWidget() {
+    int widgetId = subjectWidgetsData.length;
+
+    TextEditingController certificationController = TextEditingController();
+    TextEditingController hourlyRateController = TextEditingController();
+    TextEditingController urlVideosController = TextEditingController();
+
+    SubjectWidgetData widgetData = SubjectWidgetData(
+      selectedDropdownValue: selectedDropdownValue,
+      id: widgetId,
+      certificationController: certificationController,
+      hourlyRateController: hourlyRateController,
+      urlVideosController: urlVideosController,
+      selectedImages: List.generate(4, (_) => null),
+      selectedVideos: List.generate(4, (_) => null),
+    );
+    setState(() {
+      subjectWidgetsData.add(widgetData);
+    });
+  }
+
+  void resetWidgetData() {
+    for (final widgetData in subjectWidgetsData) {
+      widgetData.selectedDropdownValue = null;
+      widgetData.certificationController.clear();
+      widgetData.hourlyRateController.clear();
+      widgetData.urlVideosController.clear();
+      for (int i = 0; i < widgetData.selectedImages.length; i++) {
+        widgetData.selectedImages[i] = null;
+      }
+      for (int i = 0; i < widgetData.selectedVideos.length; i++) {
+        widgetData.selectedVideos[i] = null;
+      }
+      // إعادة تعيين أي قيم أخرى مرتبطة بكل ودجت حسب الحاجة
+    }
+  }
+
   void saveData() async {
     try {
       for (final widgetData in subjectWidgetsData) {
@@ -59,6 +100,7 @@ class _SubjectScreenState extends State<SubjectScreen> {
             certificationHour: widgetData.certificationController.text);
       }
       print('length: ${subjectWidgetsData.length}');
+      resetWidgetData();
     } catch (error) {
       print('Failed to create Teacher Subject: $error');
       print('Failed to create Teacher Subject: ${subjectWidgetsData.length}');
@@ -171,28 +213,7 @@ class _SubjectScreenState extends State<SubjectScreen> {
                             ),
                             minimumSize: const Size(100, 40)),
                         onPressed: () {
-                          int widgetId = subjectWidgetsData.length;
-
-                          TextEditingController certificationController =
-                              TextEditingController();
-                          TextEditingController hourlyRateController =
-                              TextEditingController();
-                          TextEditingController urlVideosController =
-                              TextEditingController();
-
-                          SubjectWidgetData widgetData = SubjectWidgetData(
-                            selectedDropdownValue: selectedDropdownValue,
-                            id: widgetId,
-                            certificationController: certificationController,
-                            hourlyRateController: hourlyRateController,
-                            urlVideosController: urlVideosController,
-                            selectedImages: List.generate(4, (_) => null),
-                            selectedVideos: List.generate(4, (_) => null),
-                          );
-
-                          setState(() {
-                            subjectWidgetsData.add(widgetData);
-                          });
+                          addWidget();
                         },
                         child: const Text(
                           "+ Add another subject",
